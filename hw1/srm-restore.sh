@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- 綁定到真實終端：避免 stdin 被管線/重導向影響 ---
+# 讓 read 一定從真實終端讀（避免被管線/重導向影響）
 if [[ -r /dev/tty ]]; then
   exec </dev/tty
 fi
@@ -39,22 +39,35 @@ for meta in "${metas[@]}"; do
   IFS=, read -r orig ts sz < "$meta" || true
 
   arch="$FILES_DIR/$key.tar.gz"
-  first="$(tar -tzf "$arch" 2>/dev/null | head -n1 || true)"
-  if [[ "$first" == */ ]]; then typ="DIR"; else typ="FILE"; fi
 
-  KEYS[idx]="$key"; ORIGS[idx]="$orig"; TIMES[idx]="$ts"; SIZES[idx]="$sz"; TYPES[idx]="$typ"; ARCHS[idx]="$arch"
+  # 安全判型別：檔案不存在就標示 MISS；tar 出錯也不會讓 set -e 中斷
+  if [[ ! -f "$arch" ]]; then
+    typ="MISS"
+  else
+    first="$(tar -tzf "$arch" 2>/dev/null | head -n1 || true)"
+    if [[ "$first" == */ ]]; then
+      typ="DIR"
+    else
+      typ="FILE"
+    fi
+  fi
+
+  KEYS[idx]="$key"; ORIGS[idx]="$orig"; TIMES[idx]="$ts"
+  SIZES[idx]="$sz";  TYPES[idx]="$typ"; ARCHS[idx]="$arch"
 
   printf -- "%5d | %-25s | %9s | %-4s | %-30s | %s\n" \
     "$idx" "${TIMES[idx]}" "${SIZES[idx]}" "${TYPES[idx]}" "${KEYS[idx]}" "${ORIGS[idx]}"
-  ((idx++))
+  ((idx += 1))
 done
 
-# --- 互動 / 非互動兩用 ---
-pick=""
-if (( $# >= 1 )); then
-  pick="$1"
-else
-  if ! read -r -p $'Enter Index to restore: ' pick; then
+# 互動 / 非互動兩用：優先吃參數，否則詢問（讀不到也不會觸發 set -e）
+pick="${1-}"
+if [[ -z "$pick" ]]; then
+  set +e
+  read -r -p $'Enter Index to restore: ' pick
+  rstat=$?
+  set -e
+  if (( rstat != 0 )); then
     echo "No input received. You can run:  srm-restore <INDEX>" >&2
     exit 1
   fi
@@ -64,14 +77,23 @@ fi
 if ! [[ "$pick" =~ ^[0-9]+$ ]]; then
   echo "Invalid index." >&2; exit 1
 fi
-if (( pick < 0 || pick >= idx )); then
+if (( pick < 0 || pick >= idx  )); then
   echo "Invalid index." >&2; exit 1
 fi
 
 # 取值
 key="${KEYS[pick]}"; orig="${ORIGS[pick]}"; arch="${ARCHS[pick]}"
+typ="${TYPES[pick]}"
 name="$(basename -- "$orig")"; parent="$(dirname -- "$orig")"
 
+# 選到缺檔就中止並提示
+if [[ "$typ" == "MISS" || ! -f "$arch" ]]; then
+  echo "Archive missing for key: $key. Cannot restore. Consider removing its meta:" >&2
+  echo "  rm -f -- \"$META_DIR/$key.meta.csv\"" >&2
+  exit 1
+fi
+
+# 建立目的資料夾
 mkdir -p -- "$parent"
 dest="$parent/$name"
 if [[ -e "$dest" ]]; then
@@ -80,15 +102,27 @@ if [[ -e "$dest" ]]; then
   echo "Original exists; restoring to: $dest"
 fi
 
+# 解壓（失敗就清楚報錯）
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
+set +e
 tar -xzf "$arch" -C "$tmpdir"
+untar_status=$?
+set -e
+if (( untar_status != 0 )); then
+  echo "Failed to extract archive: $arch" >&2
+  exit 1
+fi
 
-# 搬運
+# 搬運（正常情況會有 $tmpdir/$name）
 if [[ -e "$tmpdir/$name" ]]; then
   mv -- "$tmpdir/$name" "$dest"
 else
   first="$(ls -1A "$tmpdir" | head -n1 || true)"
+  if [[ -z "$first" ]]; then
+    echo "Archive is empty. Nothing to restore." >&2
+    exit 1
+  fi
   mv -- "$tmpdir/$first" "$dest"
 fi
 

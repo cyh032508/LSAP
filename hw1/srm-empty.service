@@ -1,0 +1,7 @@
+[Unit]
+Description=Smart Trash Can - purge old items
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/srm-empty
+Environment=TRASH_MAX_AGE_DAYS=7

@@ -29,7 +29,7 @@ for meta in "$META_DIR"/*.meta.csv; do
   fi
   diff_days=$(( (now_epoch - del_epoch) / 86400 ))
   if (( diff_days >= AGE )); then
-    rm -f -- "$FILES_DIR/$key.tar.gz" "$meta" && ((purged++))
+    rm -f -- "$FILES_DIR/$key.tar.gz" "$meta" && ((purged+=1))
   fi
 done
 shopt -u nullglob

@@ -1,20 +1,6 @@
-# Smart Trash Can 系統安裝與設定報告
+# HW1 Report
 
----
-
-## 1. 系統概述
-
-Smart Trash Can 提供類似作業系統回收桶的安全刪除機制，共有三個指令：
-
-* **`srm`**：安全刪除檔案或目錄，會將目標壓縮並移入 `~/.trash`，並建立中繼資料。
-* **`srm-restore`**：列出垃圾桶內容並讓使用者選擇索引進行還原。
-* **`srm-empty`**：清除超過設定天數的垃圾檔案，可透過環境變數 `TRASH_MAX_AGE_DAYS` 自訂天數，並可搭配 systemd 計時器自動執行。
-
-系統透過 **systemd 使用者服務** 每天自動執行清理，達到自動化維護。
-
----
-
-## 2. 原始碼與檔案
+## 1. 原始碼與檔案
 
 幾個主要檔案的位置與功能：
 
@@ -29,7 +15,7 @@ Smart Trash Can 提供類似作業系統回收桶的安全刪除機制，共有�
 
 ---
 
-## 3. 系統設定步驟
+## 2. 系統設定步驟
 
 1. **建立目錄**
 
@@ -91,9 +77,9 @@ Smart Trash Can 提供類似作業系統回收桶的安全刪除機制，共有�
 
 ---
 
-## 4. 功能示範
+## 3. 功能示範
 
-### 4.1 刪除檔案
+### 3.1 刪除檔案
 
 ```bash
 $ srm ~/lab/a.txt
@@ -119,7 +105,7 @@ $ srm -r ~/lab
 
 ![My Picture](./images/4.png)
 
-### 4.2 還原檔案
+### 3.2 還原檔案
 
 ```bash
 $ srm-restore
@@ -127,7 +113,7 @@ $ srm-restore
 
 ![My Picture](./images/5.png)
 
-### 4.3 自動/手動清空
+### 3.3 自動/手動清空
 
 手動立即清空：
 
@@ -144,11 +130,3 @@ $ systemctl --user list-timers srm-empty.timer
 ```
 
 ![My Picture](./images/7.png)
-
----
-
-## 5. 注意事項
-
-* **系統需求：** 任何含 Bash ≥4 且支援 systemd 使用者服務的 Linux。
-* **相依工具：** `bash`、`tar`、`date`、`mkdir`、`rm`。
-* **自訂清理週期：** 可修改 `TRASH_MAX_AGE_DAYS` 環境變數，或編輯 systemd timer 的 `OnCalendar`。

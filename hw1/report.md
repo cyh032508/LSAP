@@ -1,3 +1,9 @@
+---
+title: HW1 Report
+fontsize: 10pt        # 9pt、10pt、11pt、12pt 皆可
+geometry: margin=1cm  # 可選：設定邊界
+mainfont: Heiti TC   # 如果要中文字型
+---
 # HW1 Report
 
 ## 1. 原始碼與檔案

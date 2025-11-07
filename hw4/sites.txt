@@ -1,0 +1,10 @@
+google.com
+github.com
+wikipedia.org
+youtube.com
+instagram.com
+facebook.com
+messenger.com
+apple.com
+ani.gamer.com.tw
+chatgpt.com

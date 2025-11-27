@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 2 # Lab 要求 2 個副本
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: my-backend-app # 這是你 build 的 image 名稱
+        imagePullPolicy: Never # [重要] 告訴 K8s 不要去網路下載，用本地的 image
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: db-storage # 這個 name 要跟下面的 volume 名字一樣
+          mountPath: "/app/vehicles.db" # 掛載到 container 內部
+          subPath: "vehicles.db" # [重要] 只掛載檔案，不是整個資料夾
+      volumes:
+      - name: db-storage # 這個 name 要跟上面的 volumeMounts 一樣
+        persistentVolumeClaim:
+          claimName: backend-pvc # 使用我們剛才建立的 PVC

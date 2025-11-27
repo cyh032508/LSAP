@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+  annotations:
+    # 這一行是修正 Nginx Ingress 預設路徑問題
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - http:
+      paths:
+      # 導向前端 (http://<IP>/)
+      - path: /()(.*) # 匹配根路徑和它之後的一切
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: frontend-service # 轉發給前端 Service
+            port:
+              number: 3000
+      # 導向後端 (http://<IP>/api/...)
+      - path: /api(/|$)(.*) # 匹配 /api/ 和 /api
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: backend-service # 轉發給後端 Service
+            port:
+              number: 8000

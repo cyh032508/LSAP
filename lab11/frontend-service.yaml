@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service # 給 Service 一個名稱
+spec:
+  selector:
+    app: frontend # [重要] 選擇所有標籤(label)是 "app: frontend" 的 Pods
+  ports:
+    - protocol: TCP
+      port: 3000 # Service 自己的 port
+      targetPort: 3000 # 轉發到 Pod 裡的 container port
+

@@ -1,0 +1,113 @@
+.map-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.map-container {
+  width: 90%;
+  height: 90%;
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-header {
+  background-color: #ff6b35;
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1001;
+}
+
+.map-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.close-btn {
+  background-color: transparent;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  transition: background-color 0.2s;
+  font-weight: 300;
+}
+
+.close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Custom marker styles */
+.custom-marker-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.custom-marker-wrapper svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s;
+}
+
+.custom-marker-wrapper:hover svg {
+  transform: scale(1.1);
+}
+
+.custom-marker-wrapper.selected svg {
+  animation: pulse-marker 1.5s infinite;
+}
+
+@keyframes pulse-marker {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* Popup styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  padding: 0;
+}
+
+.popup-content {
+  padding: 1rem;
+  min-width: 200px;
+}
+
+.popup-content h3 {
+  color: #ff6b35;
+  margin: 0 0 0.75rem 0;
+  font-size: 1.2rem;
+}
+
+.popup-info p {
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* Make the map fill the container properly */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}

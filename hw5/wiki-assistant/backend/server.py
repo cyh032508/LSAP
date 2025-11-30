@@ -13,9 +13,15 @@ from utils import (
 app = FastAPI()
 
 # ---------------------------
-# Persistent storage settings
+# Correct storage path for Docker
 # ---------------------------
-DB_FILE = "chatdata/chat_history.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))          # /app/backend
+DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "chatdata") # /app/chatdata
+DB_FILE = os.path.join(DATA_DIR, "chat_history.json")
+
+# Ensure directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
+
 
 def load_history_from_file():
     if os.path.exists(DB_FILE):
@@ -23,9 +29,11 @@ def load_history_from_file():
             return json.load(f)
     return []
 
+
 def save_history_to_file(history):
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
+
 
 # Load initial history on startup
 chat_history = load_history_from_file()
@@ -67,7 +75,7 @@ def get_history() -> dict[str, list[dict[str, str]]]:
 def modify_history(history: list[dict[str, str]]) -> dict[str, str]:
     global chat_history
     chat_history = history
-    save_history_to_file(chat_history)  # 🔥 save to file
+    save_history_to_file(chat_history)
     return {"message": "Chat history updated successfully"}
 
 
@@ -75,5 +83,5 @@ def modify_history(history: list[dict[str, str]]) -> dict[str, str]:
 def clear_history() -> dict[str, str]:
     global chat_history
     chat_history = []
-    save_history_to_file(chat_history)  # 🔥 clear file
+    save_history_to_file(chat_history)
     return {"message": "Chat history cleared successfully"}

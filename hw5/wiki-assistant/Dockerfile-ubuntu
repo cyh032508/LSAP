@@ -3,19 +3,45 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # -----------------------------------------------------
-# Install Python 3.10 + tools
+# Step 1: Install system dependencies
 # -----------------------------------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-venv python3-distutils \
-    curl build-essential \
+RUN apt-get update && apt-get install -y \
+    wget curl git build-essential \
+    zlib1g-dev libssl-dev libffi-dev libbz2-dev \
+    libreadline-dev libsqlite3-dev liblzma-dev \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------
-# Install Poetry
+# Step 2: Download & build Python 3.12
+# -----------------------------------------------------
+WORKDIR /tmp
+
+RUN wget https://www.python.org/ftp/python/3.12.2/Python-3.12.2.tgz \
+    && tar -xvf Python-3.12.2.tgz \
+    && cd Python-3.12.2 \
+    && ./configure --enable-optimizations \
+    && make -j$(nproc) \
+    && make altinstall
+
+# -----------------------------------------------------
+# Step 3: Ensure python3 → python3.12
+# -----------------------------------------------------
+RUN ln -sf /usr/local/bin/python3.12 /usr/bin/python3
+
+# -----------------------------------------------------
+# Step 4: Install pip for Python 3.12
+# -----------------------------------------------------
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
+    && python3 get-pip.py \
+    && rm get-pip.py
+
+# -----------------------------------------------------
+# Step 5: Install Poetry
 # -----------------------------------------------------
 ENV POETRY_HOME="/opt/poetry"
 ENV PATH="$POETRY_HOME/bin:$PATH"
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN curl -sSL https://install.python-poetry.org | python3
 
 ENV POETRY_VIRTUALENVS_IN_PROJECT=true
 ENV POETRY_NO_INTERACTION=1
@@ -24,47 +50,33 @@ ENV POETRY_CACHE_DIR='/tmp/poetry-cache'
 WORKDIR /app
 
 # -----------------------------------------------------
-# Copy pyproject files
+# Step 6: Copy pyproject first
 # -----------------------------------------------------
 COPY backend/pyproject.toml backend/poetry.lock /app/backend/
 COPY frontend/pyproject.toml frontend/poetry.lock /app/frontend/
 
 # -----------------------------------------------------
-# Override requires-python (Ubuntu uses py3.10)
-# Backend can use >=3.10
-# Frontend must respect <3.14 (due to dspy)
-# -----------------------------------------------------
-RUN sed -i 's/requires-python *= *.*/requires-python = ">=3.10"/' /app/backend/pyproject.toml
-RUN sed -i 's/requires-python *= *.*/requires-python = ">=3.10,<3.14"/' /app/frontend/pyproject.toml
-
-# -----------------------------------------------------
-# Backend dependency install
+# Step 7: Install backend deps
 # -----------------------------------------------------
 WORKDIR /app/backend
-RUN poetry lock
 RUN poetry install --no-root
 
-# CPU-only PyTorch (避免 CUDA，超省空間)
-RUN pip install --no-cache-dir \
-    torch==2.5.1 \
-    --index-url https://download.pytorch.org/whl/cpu
 # -----------------------------------------------------
-# Frontend dependency install
+# Step 8: Install frontend deps
 # -----------------------------------------------------
 WORKDIR /app/frontend
-RUN poetry lock
 RUN poetry install --no-root
 
 # -----------------------------------------------------
-# Copy source code
+# Step 9: Copy source code
 # -----------------------------------------------------
 WORKDIR /app
 COPY backend /app/backend
 COPY frontend /app/frontend
+
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-EXPOSE 8000
-EXPOSE 8501
+EXPOSE 8000 8501
 
 CMD ["/app/entrypoint.sh"]

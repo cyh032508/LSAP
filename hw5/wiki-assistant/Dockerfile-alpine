@@ -1,31 +1,45 @@
-# -----------------------------------------------------
-# Base Image: Alpine 3.22
-# -----------------------------------------------------
+# 1. 更改 Base Image 為作業要求的 alpine:3.22
 FROM alpine:3.22
 
 # -----------------------------------------------------
-# Install system dependencies (Alpine版)
+# Install system dependencies (Alpine Version)
 # -----------------------------------------------------
-RUN apk add --no-cache \
-    python3 py3-pip py3-virtualenv \
-    curl build-base bash libstdc++ gcompat
+# 說明：
+# 1. apk: Alpine 的套件管理器 (取代 apt-get)
+# 2. python3, py3-pip: Alpine 預設不含 Python，需手動安裝
+# 3. build-base: 等同於 Debian 的 build-essential (含 GCC, Make)，編譯 numpy/pandas 必備
+# 4. python3-dev, libffi-dev, openssl-dev: 編譯 Python C-extensions 的標頭檔
+# 5. bash: 為了讓你的 entrypoint.sh 和 poetry 安裝腳本能順利執行
+RUN apk update && apk add --no-cache \
+    python3 \
+    py3-pip \
+    curl \
+    bash \
+    build-base \
+    libffi-dev \
+    openssl-dev \
+    python3-dev \
+    linux-headers \
+    git \
+    py3-numpy \
+    py3-pandas
 
+RUN rm -f /usr/lib/python3.12/EXTERNALLY-MANAGED
 # -----------------------------------------------------
 # Install Poetry
 # -----------------------------------------------------
 ENV POETRY_HOME="/opt/poetry"
 ENV PATH="$POETRY_HOME/bin:$PATH"
+ENV POETRY_VIRTUALENVS_CREATE=false
+# 注意：這裡使用 python3 而不是 python
 RUN curl -sSL https://install.python-poetry.org | python3 -
-
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
-ENV POETRY_NO_INTERACTION=1
-ENV POETRY_CACHE_DIR='/tmp/poetry-cache'
 
 WORKDIR /app
 
 # -----------------------------------------------------
-# Copy pyproject / lock
+# Copy pyproject + lock files (cache-friendly)
 # -----------------------------------------------------
+# 這一步驟符合 Item 10 的要求：先複製依賴設定再複製程式碼 [cite: 104, 105]
 COPY backend/pyproject.toml backend/poetry.lock /app/backend/
 COPY frontend/pyproject.toml frontend/poetry.lock /app/frontend/
 
@@ -33,7 +47,8 @@ COPY frontend/pyproject.toml frontend/poetry.lock /app/frontend/
 # Install backend dependencies
 # -----------------------------------------------------
 WORKDIR /app/backend
-RUN poetry install --no-root
+# 警告：在 Alpine 上這一步會比 Debian 慢很多，因為需要現場編譯 numpy/pandas 等套件
+RUN rm -f poetry.lock && poetry install --no-root
 
 # -----------------------------------------------------
 # Install frontend dependencies
@@ -42,7 +57,7 @@ WORKDIR /app/frontend
 RUN poetry install --no-root
 
 # -----------------------------------------------------
-# Copy full source code
+# Copy actual source code
 # -----------------------------------------------------
 WORKDIR /app
 COPY backend /app/backend
@@ -57,4 +72,5 @@ RUN chmod +x /app/entrypoint.sh
 EXPOSE 8000
 EXPOSE 8501
 
-CMD ["/app/entrypoint.sh"]
+# 確保 entrypoint.sh 使用 bash 執行 (因為 Alpine 預設是 sh)
+CMD ["/bin/bash", "/app/entrypoint.sh"]

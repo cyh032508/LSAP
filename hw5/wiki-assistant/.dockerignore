@@ -1,0 +1,9 @@
+**/.venv
+venv/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+.ipynb_checkpoints/
+.frontend_cache
+.backend_cache

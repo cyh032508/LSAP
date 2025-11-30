@@ -1,0 +1,60 @@
+# -----------------------------------------------------
+# Base Image: Alpine 3.22
+# -----------------------------------------------------
+FROM alpine:3.22
+
+# -----------------------------------------------------
+# Install system dependencies (Alpine版)
+# -----------------------------------------------------
+RUN apk add --no-cache \
+    python3 py3-pip py3-virtualenv \
+    curl build-base bash libstdc++ gcompat
+
+# -----------------------------------------------------
+# Install Poetry
+# -----------------------------------------------------
+ENV POETRY_HOME="/opt/poetry"
+ENV PATH="$POETRY_HOME/bin:$PATH"
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+ENV POETRY_NO_INTERACTION=1
+ENV POETRY_CACHE_DIR='/tmp/poetry-cache'
+
+WORKDIR /app
+
+# -----------------------------------------------------
+# Copy pyproject / lock
+# -----------------------------------------------------
+COPY backend/pyproject.toml backend/poetry.lock /app/backend/
+COPY frontend/pyproject.toml frontend/poetry.lock /app/frontend/
+
+# -----------------------------------------------------
+# Install backend dependencies
+# -----------------------------------------------------
+WORKDIR /app/backend
+RUN poetry install --no-root
+
+# -----------------------------------------------------
+# Install frontend dependencies
+# -----------------------------------------------------
+WORKDIR /app/frontend
+RUN poetry install --no-root
+
+# -----------------------------------------------------
+# Copy full source code
+# -----------------------------------------------------
+WORKDIR /app
+COPY backend /app/backend
+COPY frontend /app/frontend
+
+# -----------------------------------------------------
+# Entrypoint
+# -----------------------------------------------------
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+EXPOSE 8000
+EXPOSE 8501
+
+CMD ["/app/entrypoint.sh"]

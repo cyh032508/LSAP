@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile-backend
+    container_name: wiki-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chatdata:/app/chatdata
+    networks:
+      - wiki-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile-frontend
+    container_name: wiki-frontend
+    environment:
+      - BACKEND_URL=http://backend:8000
+    ports:
+      - "8056:8501"
+    depends_on:
+      - backend
+    networks:
+      - wiki-net
+
+networks:
+  wiki-net:
+    driver: bridge
